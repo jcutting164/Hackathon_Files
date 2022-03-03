@@ -17,32 +17,34 @@ class Team:
 	teamName = ""
 	teamExternalIP = ""
 	teamShellIP = ""
+	teamWebServerIP = ""
 	teamHttpURL = ""
 	teamPoints = 0
 	teamData = open("teamdata/name.data", "a")
+#	def __init__(self, teamName, teamExternalIP, teamShellIP):
+#		self.teamName = teamName
+#		#self.teamExternalIP = teamExternalIP
+#		#self.teamShellIP = teamShellIP
+#
+#		self.teamExternalIP="192.168.1.174"
+#		self.teamShellIP="192.168.1.181"
+#		self.teamHttpURL = "http://"+self.teamExternalIP
+#		self.writeCurrentData()
+#		namedata = open("teamdata/name.data", "a")
+#		namedata.write(self.teamName+".data\n")
+#		namedata.close()
+#		print("Team Created!")
 
-	def __init__(self, teamName, teamExternalIP, teamShellIP):
-		self.teamName = teamName
-		#self.teamExternalIP = teamExternalIP
-		#self.teamShellIP = teamShellIP
 
-		self.teamExternalIP="192.168.1.174"
-		self.teamShellIP="192.168.1.181"
-		self.teamHttpURL = "http://"+self.teamExternalIP
-		self.writeCurrentData()
-		namedata = open("teamdata/name.data", "a")
-		namedata.write(self.teamName+".data\n")
-		namedata.close()
-		print("Team Created!")
-
-	def __init__(self, teamName, teamExternalIP, teamShellIP, *args):
+	def __init__(self, teamName, teamExternalIP, teamShellIP, teamWebServerIP, *args):
 		self.teamName = str.rstrip(teamName)
 		self.teamExternalIP = str.rstrip(teamExternalIP)
 		self.teamShellIP = str.rstrip(teamShellIP)
+		self.teamWebServerIP = str.rstrip(teamWebServerIP)
 		self.teamHttpURL = "http://"+self.teamExternalIP
 		if(len(args) > 0):
 			self.teamPoints = args[0]
-			print(self.teamName+" Re-initialized!")
+			print(self.teamName+" Re-initialized!\n")
 		else:
 			self.teamPoints = 0
 			self.writeCurrentData()
@@ -60,6 +62,7 @@ class Team:
 		self.teamData.write(str(self.teamPoints)+"\n")
 		self.teamData.write(self.teamExternalIP+"\n")
 		self.teamData.write(self.teamShellIP+"\n")
+		self.teamData.write(self.teamWebServerIP+"\n")
 		self.teamData.close()
 
 
@@ -84,13 +87,13 @@ def main():
 			newname = input("Team name? : ")
 			newIP = input("What is " + newname +"\'s public IP? : ")
 			newShellIP = input("What is "+newname+"\'s public Shell IP? : ")
-			newteam = Team(newname, newIP, newShellIP)
+			newWebServerIP = input("What is "+newname+"\'s internal web server IP? : ")
+			newteam = Team(newname, newIP, newShellIP, newWebServerIP)
 			teams.append(newteam)
 	else:
 		print("Loading teams...")
 		namedata = open("teamdata/name.data", "r")
 		lines = namedata.readlines()
-		print(lines)
 		for i in range (0,len(lines)):
 			teamdata = open(str.rstrip("teamdata/"+lines[i]), "r")
 			teamLines = teamdata.readlines()
@@ -98,7 +101,8 @@ def main():
 			newscore = int(teamLines[1])
 			newExternalIP = teamLines[2]
 			newShellIP = teamLines[3]
-			newteam = Team(newname, newExternalIP, newShellIP, newscore)
+			newWebServerIP = teamLines[4]
+			newteam = Team(newname, newExternalIP, newShellIP, newWebServerIP,newscore)
 			teams.append(newteam)
 			teamdata.close()
 
@@ -125,11 +129,14 @@ def main():
 						print(team.teamName+" did not score for router ICMP.")
 						print(team.teamName+" did not score for www response.")
 						print(team.teamName+" did not score for www content.")
+						print(team.teamName+" did not score for external forward DNS.")
+						print(team.teamName+" did not score for external reverse DNS.")
 
 
 
-				#www and www content checks
+					
 					if icmpOn:
+						#www and www content checks
 						try:
 							response = requests.get(team.teamHttpURL)
 							team.teamPoints+=1
@@ -142,7 +149,40 @@ def main():
 						except:
 							print(team.teamName+" did not score for www response.")
 							print(team.teamName+" did not score for www content.")
-
+							
+						# DNS Check external fwd
+						
+						try:
+							os.system('timeout 2s dig www.teamweb.local @'+team.teamExternalIP+' | grep '+team.teamWebServerIP+' | awk \'{print $5}\' > output/dnsfwd_output')
+							f = open("output/dnsfwd_output", "r")
+							temp = f.readlines()
+							if(str.rstrip(temp[0])==str.rstrip(team.teamWebServerIP)):
+								team.teamPoints+=1
+								print(team.teamName+" scored for external forward DNS!")
+							else:
+								print(team.teamName+" did not score for external forward DNS.")
+								
+						except Exception as e:
+							print(team.teamName+" did not score for external forward DNS.")
+							
+						
+						# DNS Check external rev
+							
+						try:
+							#os.system( > output/dnsrev_output)
+							os.system('timeout 2s dig -x '+team.teamWebServerIP+' @'+team.teamExternalIP+' | grep www.teamweb.local. | awk \'{print $5}\' > output/dnsrev_output')
+							f = open("output/dnsrev_output", "r")
+							temp = f.readlines()
+							if(str.strip(temp[0])=='www.teamweb.local.'):
+								team.teamPoints+=1
+								print(team.teamName+" scored for external reverse DNS!")
+							else:
+								print(team.teamName+" did not score for external reverse DNS.")
+								
+						except Exception as e:
+							print(team.teamName+" did not score for external reverse DNS.")
+							
+							
 
 				except Exception as e:
 					print(e)

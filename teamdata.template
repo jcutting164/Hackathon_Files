@@ -1,0 +1,12 @@
+teamName
+teamPoints
+teaMExternalIP
+teamShellIP
+teamWebServerIP
+teamData
+routerICMPOn
+sshloginOn
+www80On
+wwwContentOn
+dnsFwdOn
+dnsRevOn
