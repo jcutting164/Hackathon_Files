@@ -1,0 +1,7 @@
+This code is used to operate a localized service based compeition at SUNY POLY.
+
+scoring-engine.py is used to test if a team's services are running using the ping, curl, and dig commmands and award points.
+
+main.py is used to represent the current score graphically.
+
+This project has been tested and operated in a ProxMox virtualized environement with linux networks.
